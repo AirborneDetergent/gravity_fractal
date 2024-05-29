@@ -9,8 +9,7 @@ def import_string(path):
 class Window(moderngl_window.WindowConfig):
 	title = "Fractal"
 	gl_version = (4, 6)
-	fullscreen = True
-	window_size = (1920, 1080)
+	window_size = (540, 540)
 	aspect_ratio = None
 	resizable = False
 	
@@ -52,12 +51,12 @@ class Window(moderngl_window.WindowConfig):
 		
 		self.prog['camOffset'] = (self.cam_x, self.cam_y)
 		self.prog['zoom'] = self.zoom
-		self.prog['resolution'] = self.window_size
+		self.prog['resolution'] = self.wnd.size
 		self.prog['dotMass'] = self.dot_mass
 		self.vao.render()
 		
 	def mouse_drag_event(self, x, y, dx, dy):
-		speed = 2.0 * self.zoom / self.window_size[1]
+		speed = 2.0 * self.zoom / self.wnd.size[1]
 		self.cam_x -= dx * speed
 		self.cam_y += dy * speed
 		
@@ -69,6 +68,12 @@ class Window(moderngl_window.WindowConfig):
 		self.zoom = 0.8 ** self.zoom_level
 		
 	def key_event(self, key, action, modifiers):
+		if key == self.wnd.keys.F and action == self.wnd.keys.ACTION_PRESS:
+			self.wnd.fullscreen = not self.wnd.fullscreen
+			if self.wnd.fullscreen:
+				self.wnd.resize(1920, 1080)
+			else:
+				self.wnd.resize(self.window_size[0], self.window_size[1])
 		if action == self.wnd.keys.ACTION_PRESS:
 			self.inputs.add(key)
 		elif action == self.wnd.keys.ACTION_RELEASE:
