@@ -18,6 +18,7 @@ class Window(moderngl_window.WindowConfig):
 	zoom = 1.0
 	dot_mass = 0.1
 	zoom_level = 0
+	grid_lines = False
 	inputs: set[Any] = set()
 	
 	def __init__(self, **kwargs):
@@ -38,8 +39,7 @@ class Window(moderngl_window.WindowConfig):
 	
 	def render(self, time, frame_time):
 		if self.wnd.keys.SPACE in self.inputs:
-			self.zoom_level += frame_time * 5
-			self.recalc_zoom()
+			self.set_zoom(self.zoom_level + frame_time * 5)
 		
 		if self.wnd.keys.UP in self.inputs:
 			self.dot_mass += frame_time / 5
@@ -53,6 +53,7 @@ class Window(moderngl_window.WindowConfig):
 		self.prog['zoom'] = self.zoom
 		self.prog['resolution'] = self.wnd.size
 		self.prog['dotMass'] = self.dot_mass
+		self.prog['gridLines'] = self.grid_lines
 		self.vao.render()
 		
 	def mouse_drag_event(self, x, y, dx, dy):
@@ -61,19 +62,18 @@ class Window(moderngl_window.WindowConfig):
 		self.cam_y += dy * speed
 		
 	def mouse_scroll_event(self, x_offset, y_offset):
-		self.zoom_level += y_offset
-		self.recalc_zoom()
+		self.set_zoom(self.zoom_level + y_offset)
 		
-	def recalc_zoom(self):
+	def set_zoom(self, zoom_level):
+		self.zoom_level = zoom_level
 		self.zoom = 0.8 ** self.zoom_level
 		
 	def key_event(self, key, action, modifiers):
-		if key == self.wnd.keys.F and action == self.wnd.keys.ACTION_PRESS:
-			self.wnd.fullscreen = not self.wnd.fullscreen
-			if self.wnd.fullscreen:
-				self.wnd.resize(1920, 1080)
-			else:
-				self.wnd.resize(self.window_size[0], self.window_size[1])
+		if action == self.wnd.keys.ACTION_PRESS:
+			if key == self.wnd.keys.G:
+				self.grid_lines = not self.grid_lines
+			if key == self.wnd.keys.F:
+				self.wnd.fullscreen = not self.wnd.fullscreen
 		if action == self.wnd.keys.ACTION_PRESS:
 			self.inputs.add(key)
 		elif action == self.wnd.keys.ACTION_RELEASE:

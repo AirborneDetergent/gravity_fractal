@@ -16,18 +16,12 @@ struct Dot {
 uniform vec2 camOffset;
 uniform float zoom;
 uniform float dotMass;
+uniform bool gridLines;
 
 uniform vec2 resolution;
 
 in vec2 v_pos;
 out vec4 f_color;
-
-
-vec2 rotate(vec2 v, float a) {
-	float s = sin(a);
-	float c = cos(a);
-	return vec2(v.x * c - v.y * s, v.x * s + v.y * c);
-}
 
 // https://nullprogram.com/blog/2018/07/31/
 uint hash(uint x) {
@@ -56,11 +50,6 @@ uint getSeed(vec2 pos) {
 float seedToFloat(uint seed) {
 	uint mask = (1 << 23) - 1;
 	return uintBitsToFloat((floatBitsToUint(1.0) & (~mask)) | (seed & mask)) - 1.0;
-}
-
-float random(vec2 pos) {
-	uint seed = getSeed(pos);
-	return seedToFloat(hash(seed));
 }
 
 vec3 noise(vec2 pos) {
@@ -98,8 +87,8 @@ vec3 noise(vec2 pos) {
 	}
 	Dot d = dots[DOTS];
 	float hue = atan(d.vel.y, d.vel.x) / TAU;
-	float val = tanh(length(d.pos) / (float(ITERATIONS) * GRAVITY) * 0.2);
-	vec3 col = hsv2rgb(vec3(hue, val, val));
+	float satVal = tanh(length(d.pos) / (float(ITERATIONS) * GRAVITY) * 0.2);
+	vec3 col = hsv2rgb(vec3(hue, satVal, satVal));
 	return col;
 }
 
@@ -108,20 +97,21 @@ void main() {
 	vec2 pos = v_pos * zoom;
 	pos.x *= aspect;
 	pos += camOffset;
-	vec2 variation = 2.0 * zoom / resolution;
-	uint seed = getSeed(vec2(gl_FragCoord));
-	vec3 col = vec3(0.0);
-	for(int i = 0; i < SAMPLES; i++) {
-		float ox = seedToFloat(seed) - 0.5;
-		seed = hash(seed);
-		float oy = seedToFloat(seed) - 0.5;
-		seed = hash(seed);
-		col += noise(pos + vec2(ox, oy) * variation);
-	}
-	col /= float(SAMPLES);
 	vec2 fp = pos - floor(pos);
-	if(min(fp.x, fp.y) < 0.01 * zoom) {
-		//col = vec3(0.0);
+	if(gridLines && min(fp.x, min(fp.y, min(1.0 - fp.x, 1.0 - fp.y))) < 0.005 * zoom) {
+		f_color = vec4(0);
+	} else {
+		vec2 variation = 2.0 * zoom / resolution;
+		uint seed = getSeed(vec2(gl_FragCoord));
+		vec3 col = vec3(0.0);
+		for(int i = 0; i < SAMPLES; i++) {
+			float ox = seedToFloat(seed) - 0.5;
+			seed = hash(seed);
+			float oy = seedToFloat(seed) - 0.5;
+			seed = hash(seed);
+			col += noise(pos + vec2(ox, oy) * variation);
+		}
+		col /= float(SAMPLES);
+		f_color = vec4(col.r, col.g, col.b, 1.0);
 	}
-	f_color = vec4(col.r, col.g, col.b, 1.0);
 }
