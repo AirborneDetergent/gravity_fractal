@@ -1,6 +1,8 @@
+import math
+from typing import Any
+
 import moderngl_window
 import numpy as np
-from typing import Any
 
 def import_string(path):
 	with open(path, 'r') as f:
@@ -9,7 +11,7 @@ def import_string(path):
 class Window(moderngl_window.WindowConfig):
 	title = "Fractal"
 	gl_version = (4, 6)
-	window_size = (540, 540)
+	# window_size = (1280, 720)
 	aspect_ratio = None
 	resizable = False
 	
@@ -23,11 +25,15 @@ class Window(moderngl_window.WindowConfig):
 	
 	def __init__(self, **kwargs):
 		super().__init__(**kwargs)
-		self.prog = self.ctx.program(
+		
+		self.fractal_shader = self.ctx.compute_shader(import_string('shaders/fractal.comp'))
+		
+		self.screen_shader = self.ctx.program(
 			vertex_shader = import_string('shaders/shader.vert'),
 			fragment_shader = import_string('shaders/shader.frag'),
 		)
 		
+		self.albedo = self.ctx.texture(self.window_size, 4)
 		vertices = np.array([
 			0.0, 20.0,
 			-10.0, -10.0,
@@ -35,9 +41,9 @@ class Window(moderngl_window.WindowConfig):
 		], dtype='f4')
 
 		self.vbo = self.ctx.buffer(vertices)
-		self.vao = self.ctx.simple_vertex_array(self.prog, self.vbo, 'in_vert') # type: ignore
+		self.vao = self.ctx.simple_vertex_array(self.screen_shader, self.vbo, 'in_vert') # type: ignore
 	
-	def render(self, time, frame_time):
+	def render(self, total_time, frame_time):
 		if self.wnd.keys.SPACE in self.inputs:
 			self.set_zoom(self.zoom_level + frame_time * 5)
 		
@@ -49,11 +55,18 @@ class Window(moderngl_window.WindowConfig):
 			self.dot_mass -= frame_time / 5
 			print(self.dot_mass)
 		
-		self.prog['camOffset'] = (self.cam_x, self.cam_y)
-		self.prog['zoom'] = self.zoom
-		self.prog['resolution'] = self.wnd.size
-		self.prog['dotMass'] = self.dot_mass
-		self.prog['gridLines'] = self.grid_lines
+		self.albedo.bind_to_image(0)
+		self.fractal_shader['albedo'] = 0
+		self.fractal_shader['resolution'] = self.wnd.size
+		self.fractal_shader['camOffset'] = (self.cam_x, self.cam_y)
+		self.fractal_shader['zoom'] = self.zoom
+		self.fractal_shader['resolution'] = self.wnd.size
+		self.fractal_shader['dotMass'] = self.dot_mass
+		self.fractal_shader['gridLines'] = self.grid_lines
+		self.fractal_shader.run(math.ceil(self.window_size[0] / 32), math.ceil(self.window_size[1] / 32))
+		
+		self.albedo.use(0)
+		self.screen_shader['albedo'] = 0
 		self.vao.render()
 		
 	def mouse_drag_event(self, x, y, dx, dy):
@@ -77,6 +90,9 @@ class Window(moderngl_window.WindowConfig):
 		if action == self.wnd.keys.ACTION_PRESS:
 			self.inputs.add(key)
 		elif action == self.wnd.keys.ACTION_RELEASE:
-			self.inputs.remove(key)
+			try:
+				self.inputs.remove(key)
+			except KeyError:
+				pass
 	
 Window.run()
