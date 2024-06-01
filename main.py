@@ -11,7 +11,7 @@ def import_string(path):
 class Window(moderngl_window.WindowConfig):
 	title = "Fractal"
 	gl_version = (4, 6)
-	# window_size = (1280, 720)
+	window_size = (1280, 720)
 	aspect_ratio = None
 	resizable = False
 	
@@ -20,8 +20,8 @@ class Window(moderngl_window.WindowConfig):
 	zoom = 1.0
 	dot_mass = 0.1
 	zoom_level = 0
-	grid_lines = False
 	inputs: set[Any] = set()
+	inputs_toggled: set[Any] = set()
 	
 	def __init__(self, **kwargs):
 		super().__init__(**kwargs)
@@ -34,6 +34,8 @@ class Window(moderngl_window.WindowConfig):
 		)
 		
 		self.albedo = self.ctx.texture(self.window_size, 4)
+		self.height = self.ctx.texture(self.window_size, 1, dtype='f4')
+		
 		vertices = np.array([
 			0.0, 20.0,
 			-10.0, -10.0,
@@ -44,6 +46,7 @@ class Window(moderngl_window.WindowConfig):
 		self.vao = self.ctx.simple_vertex_array(self.screen_shader, self.vbo, 'in_vert') # type: ignore
 	
 	def render(self, total_time, frame_time):
+		print(int(frame_time * 1000))
 		if self.wnd.keys.SPACE in self.inputs:
 			self.set_zoom(self.zoom_level + frame_time * 5)
 		
@@ -57,16 +60,21 @@ class Window(moderngl_window.WindowConfig):
 		
 		self.albedo.bind_to_image(0)
 		self.fractal_shader['albedo'] = 0
+		self.height.bind_to_image(1)
+		self.fractal_shader['height'] = 1
 		self.fractal_shader['resolution'] = self.wnd.size
 		self.fractal_shader['camOffset'] = (self.cam_x, self.cam_y)
 		self.fractal_shader['zoom'] = self.zoom
 		self.fractal_shader['resolution'] = self.wnd.size
 		self.fractal_shader['dotMass'] = self.dot_mass
-		self.fractal_shader['gridLines'] = self.grid_lines
+		self.fractal_shader['gridLines'] = self.wnd.keys.G in self.inputs_toggled
 		self.fractal_shader.run(math.ceil(self.window_size[0] / 32), math.ceil(self.window_size[1] / 32))
 		
 		self.albedo.use(0)
 		self.screen_shader['albedo'] = 0
+		self.screen_shader['height'] = 1
+		self.screen_shader['resolution'] = self.wnd.size
+		self.screen_shader['is3D'] = self.wnd.keys.NUMBER_3 in self.inputs_toggled
 		self.vao.render()
 		
 	def mouse_drag_event(self, x, y, dx, dy):
@@ -83,12 +91,13 @@ class Window(moderngl_window.WindowConfig):
 		
 	def key_event(self, key, action, modifiers):
 		if action == self.wnd.keys.ACTION_PRESS:
-			if key == self.wnd.keys.G:
-				self.grid_lines = not self.grid_lines
+			self.inputs.add(key)
+			if key in self.inputs_toggled:
+				self.inputs_toggled.remove(key)
+			else:
+				self.inputs_toggled.add(key)
 			if key == self.wnd.keys.F:
 				self.wnd.fullscreen = not self.wnd.fullscreen
-		if action == self.wnd.keys.ACTION_PRESS:
-			self.inputs.add(key)
 		elif action == self.wnd.keys.ACTION_RELEASE:
 			try:
 				self.inputs.remove(key)
