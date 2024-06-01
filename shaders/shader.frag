@@ -36,13 +36,18 @@ void main() {
 		int iters = 0;
 		vec3 color = vec3(1., 0., 1.);
 		float dist = 0.;
+		float prevHeight = imageLoad(height, texelPos).r;
 		while(isGoing && iters++ < MAX_ITERS) {
 			int next = 0;
 			if(pending.y < pending.x) {
 				next = 1;
 			}
-			texelPos[next] += dirSign[next];
 			dist += pending[next];
+			if(prevHeight >= pos.z + dir.z * dist) {
+				isGoing = false;
+				color = texture(albedo, vec2(texelPos) / resolution).rgb;
+			}
+			texelPos[next] += dirSign[next];
 			pending -= pending[next];
 			pending[next] = periods[next];
 			float texelHeight = imageLoad(height, texelPos).r;
@@ -50,6 +55,7 @@ void main() {
 				isGoing = false;
 				color = texture(albedo, vec2(texelPos) / resolution).rgb;
 			}
+			prevHeight = texelHeight;
 		}
 		f_color = vec4(color, 1.);
 	} else {
