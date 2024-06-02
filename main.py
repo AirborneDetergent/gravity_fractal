@@ -27,6 +27,7 @@ class Window(moderngl_window.WindowConfig):
 		super().__init__(**kwargs)
 		
 		self.fractal_shader = self.ctx.compute_shader(import_string('shaders/fractal.comp'))
+		self.blur_shader = self.ctx.compute_shader(import_string('shaders/blur.comp'))
 		
 		self.screen_shader = self.ctx.program(
 			vertex_shader = import_string('shaders/shader.vert'),
@@ -35,6 +36,7 @@ class Window(moderngl_window.WindowConfig):
 		
 		self.albedo = self.ctx.texture(self.window_size, 4)
 		self.height = self.ctx.texture(self.window_size, 1, dtype='f4')
+		self.height_swap = self.ctx.texture(self.window_size, 1, dtype='f4')
 		
 		vertices = np.array([
 			0.0, 20.0,
@@ -69,6 +71,18 @@ class Window(moderngl_window.WindowConfig):
 		self.fractal_shader['dotMass'] = self.dot_mass
 		self.fractal_shader['gridLines'] = self.wnd.keys.G in self.inputs_toggled
 		self.fractal_shader.run(math.ceil(self.window_size[0] / 32), math.ceil(self.window_size[1] / 32))
+		
+		if self.wnd.keys.B in self.inputs_toggled:
+			self.height_swap.bind_to_image(2)
+			self.blur_shader['resolution'] = self.wnd.size
+			self.blur_shader['axis'] = 0
+			self.blur_shader['height'] = 1
+			self.blur_shader['height_swap'] = 2
+			self.blur_shader.run(math.ceil(self.window_size[0] / 32), math.ceil(self.window_size[1] / 32))
+			self.blur_shader['axis'] = 1
+			self.blur_shader['height'] = 2
+			self.blur_shader['height_swap'] = 1
+			self.blur_shader.run(math.ceil(self.window_size[0] / 32), math.ceil(self.window_size[1] / 32))
 		
 		self.albedo.use(0)
 		self.screen_shader['albedo'] = 0

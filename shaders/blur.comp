@@ -1,0 +1,23 @@
+#version 460
+
+layout(local_size_x = 32, local_size_y = 32) in;
+
+uniform vec2 resolution;
+uniform int axis;
+
+layout(r32f) uniform image2D height;
+layout(r32f) uniform image2D height_swap;
+
+void main() {
+	ivec2 texelPos = ivec2(gl_GlobalInvocationID.xy);
+	if(texelPos.x >= int(resolution.x) || texelPos.y >= int(resolution.y)) {
+		return;
+	}
+	float sum = 0.;
+	for(int i = -5; i <= 5; i++) {
+		ivec2 pos = texelPos;
+		pos[axis] += i;
+		sum += imageLoad(height, pos).r;
+	}
+	imageStore(height_swap, texelPos, vec4(sum / 11.));
+}
