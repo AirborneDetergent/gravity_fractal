@@ -14,6 +14,7 @@ layout(r32f) uniform image2D height;
 uniform vec3 sunDir;
 uniform bool is3D;
 uniform vec2 resolution;
+uniform bool isWhite;
 
 in vec2 v_pos;
 out vec4 f_color;
@@ -73,9 +74,10 @@ void main() {
 		float dy = imageLoad(height, primary.texelPos + ivec2(0, 1)).r - imageLoad(height, primary.texelPos - ivec2(0, 1)).r;
 		vec3 normal = normalize(vec3(dx, dy, 2.));
 		light = max(0., dot(normalize(sunDir), normal)) * 0.9 + 0.1;
-		//primary.color = normalize(primary.color);
+		if(isWhite) {
+			primary.color = vec3(1.);
+		}
 		vec3 color = primary.color * pow(light, 1. / 2.2);
-		//color = color * 0.0001 + normal / 2. + 0.5;
 		f_color = vec4(color, 1.);
 	} else {
 		vec3 col = texture(albedo, v_pos / 2. + 0.5).rgb;

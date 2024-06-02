@@ -89,7 +89,8 @@ class Window(moderngl_window.WindowConfig):
 		self.screen_shader['height'] = 1
 		self.screen_shader['resolution'] = self.wnd.size
 		self.screen_shader['is3D'] = self.wnd.keys.NUMBER_3 in self.inputs_toggled
-		self.screen_shader['sunDir'] = (math.cos(total_time / 10), math.sin(total_time / 10), 1)
+		self.screen_shader['isWhite'] = self.wnd.keys.W in self.inputs_toggled
+		self.screen_shader['sunDir'] = (math.cos(total_time / 5), math.sin(total_time / 5), 1)
 		self.vao.render()
 		
 	def mouse_drag_event(self, x, y, dx, dy):
